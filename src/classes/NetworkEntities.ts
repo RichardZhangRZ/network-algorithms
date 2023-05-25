@@ -39,11 +39,11 @@ class DVRouter extends NetworkEntity {
         minDist = Math.min(minDist, possibleDist);
       }
       if (minDist != this.distanceVector.get(destination)) {
+        
         status = ChangeStatus.DV_CHANGED;
         this.distanceVector.set(destination, minDist);
       }
     }
-
     return status;
   }
 
@@ -80,4 +80,4 @@ class DVLink {
   }
 }
 
-export {NetworkEntity, DVRouter, DVPacket, DVLink};
+export {NetworkEntity, DVRouter, DVPacket, DVLink, ChangeStatus};

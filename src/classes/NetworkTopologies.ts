@@ -8,14 +8,14 @@ class Network {
 
 class DVNetwork extends Network {
   routers: Array<DVRouter>;
-  packets: Array<DVPacket>;
+  packets: Set<DVPacket>;
   commonTransmissionSpeed = 0.05;
   routerRadius: number;
 
   constructor(routerRadius: number = 70) {
     super();
     this.routers = [];
-    this.packets = [];
+    this.packets = new Set();
     this.routerRadius = routerRadius;
   }
 

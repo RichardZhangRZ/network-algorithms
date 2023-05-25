@@ -5,6 +5,7 @@ import {
   DVIdleState,
   AddDVRouterState,
   EditDVRouterState,
+  RunDVAlgorithmState,
 } from "../classes/DistanceVectorSimulatorStates";
 import {
   Menu,
@@ -182,6 +183,14 @@ const DistanceVectorSimulator = () => {
     );
   }, []);
 
+  const onRunDVSimulator = useCallback<
+    React.MouseEventHandler<HTMLButtonElement>
+  >((_) => {
+    currentState.current = new RunDVAlgorithmState(
+      currentNetwork.current
+    );
+  }, []);
+
   return (
     <>
       <Menu>
@@ -197,6 +206,9 @@ const DistanceVectorSimulator = () => {
           </MenuItem>
           <MenuItem icon={<AddIcon />} onClick={onAddLinkClick}>
             Add Link
+          </MenuItem>
+          <MenuItem onClick={onRunDVSimulator}>
+            Run Distance Vector
           </MenuItem>
         </MenuList>
       </Menu>
