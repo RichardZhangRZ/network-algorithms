@@ -66,7 +66,7 @@ function WeightModal({
   state,
   isOpen,
   onClose,
-  onWeightSubmit
+  onWeightSubmit,
 }: {
   state: SimulatorState;
   isOpen: boolean;
@@ -97,11 +97,7 @@ function WeightModal({
               <NumberDecrementStepper />
             </NumberInputStepper>
           </NumberInput>
-          <Button
-            onClick={onWeightSubmit}
-          >
-            Submit
-          </Button>
+          <Button onClick={onWeightSubmit}>Submit</Button>
         </ModalBody>
 
         <ModalFooter>
@@ -130,7 +126,7 @@ const DistanceVectorSimulator = () => {
 
   const draw = (ctx: CanvasRenderingContext2D, _: number) => {
     ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-    ctx.globalCompositeOperation='destination-over';
+    ctx.globalCompositeOperation = "destination-over";
     currentState.current.draw(ctx);
     ctx.fill();
   };
@@ -186,9 +182,7 @@ const DistanceVectorSimulator = () => {
   const onRunDVSimulator = useCallback<
     React.MouseEventHandler<HTMLButtonElement>
   >((_) => {
-    currentState.current = new RunDVAlgorithmState(
-      currentNetwork.current
-    );
+    currentState.current = new RunDVAlgorithmState(currentNetwork.current);
   }, []);
 
   return (
@@ -207,9 +201,7 @@ const DistanceVectorSimulator = () => {
           <MenuItem icon={<AddIcon />} onClick={onAddLinkClick}>
             Add Link
           </MenuItem>
-          <MenuItem onClick={onRunDVSimulator}>
-            Run Distance Vector
-          </MenuItem>
+          <MenuItem onClick={onRunDVSimulator}>Run Distance Vector</MenuItem>
         </MenuList>
       </Menu>
       <Canvas draw={draw} ref={canvasRef} width="1440" height="720"></Canvas>
@@ -217,7 +209,7 @@ const DistanceVectorSimulator = () => {
         state={currentState.current}
         isOpen={isWeightModalOpen}
         onClose={onWeightModalClose}
-        onWeightSubmit={()=>{
+        onWeightSubmit={() => {
           if (!(currentState.current instanceof EditDVRouterState)) {
             return;
           }

@@ -2,7 +2,6 @@ import { DVNetwork } from "./NetworkTopologies";
 import routerImg from "../assets/router.png";
 import { ChangeStatus, DVPacket, DVRouter } from "./NetworkEntities";
 import { squared_dist } from "./Helpers";
-import { drawLink } from "../graphics/helpers";
 
 class DVIdleState implements SimulatorState {
   currentTopology: DVNetwork;
@@ -38,7 +37,10 @@ class DVIdleState implements SimulatorState {
 
     const links = this.currentTopology.getLinks();
     for (const link of links) {
-      drawLink(ctx, link);
+      ctx.beginPath();
+      ctx.moveTo(link.routerA.position[0], link.routerA.position[1]);
+      ctx.lineTo(link.routerB.position[0], link.routerB.position[1]);
+      ctx.stroke();
     }
   }
 }
@@ -111,7 +113,10 @@ class AddDVRouterState implements SimulatorState {
 
     const links = this.currentTopology.getLinks();
     for (const link of links) {
-      drawLink(ctx, link);
+      ctx.beginPath();
+      ctx.moveTo(link.routerA.position[0], link.routerA.position[1]);
+      ctx.lineTo(link.routerB.position[0], link.routerB.position[1]);
+      ctx.stroke();
     }
   }
 }
@@ -209,7 +214,10 @@ class EditDVRouterState implements SimulatorState {
 
     const links = this.currentTopology.getLinks();
     for (const link of links) {
-      drawLink(ctx, link);
+      ctx.beginPath();
+      ctx.moveTo(link.routerA.position[0], link.routerA.position[1]);
+      ctx.lineTo(link.routerB.position[0], link.routerB.position[1]);
+      ctx.stroke();
     }
   }
 
@@ -233,7 +241,7 @@ class RunDVAlgorithmState implements SimulatorState {
   constructor(currentTopology: DVNetwork) {
     this.currentTopology = currentTopology;
     this.roundNum = 0;
-    this.tickTime = 10;
+    this.tickTime = 0.5;
     setInterval(this.tick.bind(this), this.tickTime);
   }
 
@@ -287,7 +295,7 @@ class RunDVAlgorithmState implements SimulatorState {
         (packet.destination.position[1] - packet.source.position[1]) *
           packet.transmission_progress;
       ctx.beginPath();
-      ctx.rect(posX, posY, 20, 30);
+      ctx.rect(posX, posY, 20, 50);
       ctx.stroke();
     }
   }
@@ -306,20 +314,19 @@ class RunDVAlgorithmState implements SimulatorState {
     const nextRound = this.roundNum + 1;
     for (const packet of this.currentTopology.packets) {
       packet.transmission_progress +=
-        this.currentTopology.commonTransmissionSpeed * (this.tickTime / 1000);
+        this.currentTopology.commonTransmissionSpeed;
       if (packet.transmission_progress >= 1.0) {
         const result = packet.destination.updateDistanceVector(packet);
-        statusMap.set(packet.destination, result);
+        if (result == ChangeStatus.DV_CHANGED)
+          statusMap.set(packet.destination, result);
         this.currentTopology.packets.delete(packet);
-        packet.transmission_progress = 0;
         this.roundNum = nextRound;
       }
     }
-
     for (const [router, status] of statusMap.entries()) {
       if (status == ChangeStatus.DV_CHANGED) {
         for (const dest of router.localLinkState.keys()) {
-          const newPacket = new DVPacket(router, dest, router.distanceVector);
+          const newPacket = new DVPacket(router, dest, router.localLinkState);
           this.currentTopology.packets.add(newPacket);
         }
       }

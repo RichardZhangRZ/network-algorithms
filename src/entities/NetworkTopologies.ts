@@ -6,7 +6,7 @@ class Network {}
 class DVNetwork extends Network {
   routers: Array<DVRouter>;
   packets: Set<DVPacket>;
-  commonTransmissionSpeed = 0.5;
+  commonTransmissionSpeed = 0.05;
   routerRadius: number;
 
   constructor(routerRadius: number = 70) {
