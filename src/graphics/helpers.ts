@@ -21,3 +21,51 @@ export const drawLink = (ctx: CanvasRenderingContext2D, link: DVLink) => {
     textPos[1] + unitPerm[1] * 10
   );
 };
+
+export const wrapText = (
+  context: CanvasRenderingContext2D,
+  linesOfText: string[],
+  x: number,
+  y: number,
+  maxWidth: number,
+  lineHeight: number,
+  padding: number
+) => {
+  const newLinesOfText: string[] = [];
+
+  for (const line of linesOfText) {
+    const splitLines = [];
+    const words = line.split(" ");
+
+    let currLine = "";
+    for (let i = 0; i < words.length; i++) {
+      const testLine = currLine + words[i] + " ";
+      const testWidth = context.measureText(testLine).width;
+  
+      if (testWidth > maxWidth) {
+        splitLines.push(currLine);
+        currLine = words[i] + " ";
+      } else {
+        currLine = testLine;
+      }
+    }
+    splitLines.push(currLine);
+    newLinesOfText.push(...splitLines);
+  }
+  
+  let yOffset = y + padding + lineHeight;
+  
+  context.fillStyle = "white";
+  for (const line of newLinesOfText) {
+    context.fillText(line, x + padding, yOffset);
+    yOffset += lineHeight;
+  }
+  context.fillStyle = "black";
+  context.fillRect(
+    x,
+    y,
+    padding * 2 + maxWidth,
+    newLinesOfText.length * lineHeight + padding * 2
+  );
+  
+};

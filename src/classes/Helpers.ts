@@ -4,3 +4,4 @@ function squared_dist(pos1: [number, number], pos2: [number, number]) {
   return deltaX * deltaX + deltaY * deltaY;
 }
 export {squared_dist};
+

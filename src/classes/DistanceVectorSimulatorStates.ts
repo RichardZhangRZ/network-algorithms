@@ -2,23 +2,67 @@ import { DVNetwork } from "./NetworkTopologies";
 import routerImg from "../assets/router.png";
 import { ChangeStatus, DVPacket, DVRouter } from "./NetworkEntities";
 import { squared_dist } from "./Helpers";
-import { drawLink } from "../graphics/helpers";
+import { drawLink, wrapText } from "../graphics/helpers";
 
 class DVIdleState implements SimulatorState {
   currentTopology: DVNetwork;
+  currentHoveredRouter: DVRouter | null;
 
   constructor(currentTopology: DVNetwork) {
     this.currentTopology = currentTopology;
+    this.currentHoveredRouter = null;
   }
   mouseClickTransition(_?: [number, number] | undefined): SimulatorState {
     return this;
   }
 
-  mouseMoveTransition(_?: [number, number] | undefined): SimulatorState {
+  mouseMoveTransition(
+    movePosition?: [number, number] | undefined
+  ): SimulatorState {
+    if (movePosition) {
+      console.log(this.currentHoveredRouter);
+      const closestRouter =
+        this.currentTopology.findClosestRouterToPosition(movePosition);
+      if (!closestRouter) {
+        return this;
+      }
+      if (
+        squared_dist(closestRouter.position, movePosition) <
+        this.currentTopology.routerRadius * this.currentTopology.routerRadius
+      ) {
+        this.currentHoveredRouter = closestRouter;
+      } else {
+        this.currentHoveredRouter = null;
+      }
+    }
     return this;
   }
 
   draw(ctx: CanvasRenderingContext2D) {
+    // Display distance vector overlay
+    if (this.currentHoveredRouter) {
+      const header = `${this.currentHoveredRouter.name}'s Distance Vector`;
+      const bodyLines = Array.from(
+        this.currentHoveredRouter.distanceVector.entries()
+      ).map(([router, distance]) => `${router.name}: ${distance}`);
+
+      if (bodyLines.length == 0) {
+        bodyLines.push("Empty");
+      }
+
+      const distanceVectorInfoStringLines = [header, ...bodyLines];
+
+      wrapText(
+        ctx,
+        distanceVectorInfoStringLines,
+        this.currentHoveredRouter.position[0],
+        this.currentHoveredRouter.position[1],
+        200,
+        10,
+        5
+      );
+    }
+
     for (const router of this.currentTopology.routers) {
       const image = new Image();
       image.src = routerImg;
