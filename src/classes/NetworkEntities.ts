@@ -24,6 +24,8 @@ class DVRouter extends NetworkEntity {
     this.distanceVector = new Map();
     this.neighboringDistanceVectors = new Map();
     this.localLinkState = new Map();
+    this.localLinkState.set(this, 0);
+    this.distanceVector.set(this, 0);
   }
 
   updateDistanceVector(incomingPacket: DVPacket): ChangeStatus {

@@ -20,7 +20,6 @@ class DVIdleState implements SimulatorState {
     movePosition?: [number, number] | undefined
   ): SimulatorState {
     if (movePosition) {
-      console.log(this.currentHoveredRouter);
       const closestRouter =
         this.currentTopology.findClosestRouterToPosition(movePosition);
       if (!closestRouter) {
@@ -44,7 +43,11 @@ class DVIdleState implements SimulatorState {
       const header = `${this.currentHoveredRouter.name}'s Distance Vector`;
       const bodyLines = Array.from(
         this.currentHoveredRouter.distanceVector.entries()
-      ).map(([router, distance]) => `${router.name}: ${distance}`);
+      )
+        .sort(([routerA], [routerB]) =>
+          routerA.name.localeCompare(routerB.name)
+        )
+        .map(([router, distance]) => `${router.name}: ${distance}`);
 
       if (bodyLines.length == 0) {
         bodyLines.push("Empty");
@@ -58,7 +61,7 @@ class DVIdleState implements SimulatorState {
         this.currentHoveredRouter.position[0],
         this.currentHoveredRouter.position[1],
         200,
-        10,
+        24,
         5
       );
     }
@@ -346,23 +349,24 @@ class RunDVAlgorithmState implements SimulatorState {
       }
     }
 
-    const statusMap = new Map<DVRouter, ChangeStatus>();
+    const changedRouters: Set<DVRouter> = new Set();
     const nextRound = this.roundNum + 1;
     for (const packet of this.currentTopology.packets) {
       packet.transmission_progress +=
         this.currentTopology.commonTransmissionSpeed * (this.tickTime / 1000);
       if (packet.transmission_progress >= 1.0) {
         const result = packet.destination.updateDistanceVector(packet);
-        statusMap.set(packet.destination, result);
+        if (result == ChangeStatus.DV_CHANGED)
+          changedRouters.add(packet.destination);
         this.currentTopology.packets.delete(packet);
         packet.transmission_progress = 0;
         this.roundNum = nextRound;
       }
     }
 
-    for (const [router, status] of statusMap.entries()) {
-      if (status == ChangeStatus.DV_CHANGED) {
-        for (const dest of router.localLinkState.keys()) {
+    for (const router of changedRouters) {
+      for (const dest of router.localLinkState.keys()) {
+        if (router != dest) {
           const newPacket = new DVPacket(router, dest, router.distanceVector);
           this.currentTopology.packets.add(newPacket);
         }

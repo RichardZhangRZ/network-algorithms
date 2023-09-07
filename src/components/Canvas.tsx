@@ -1,8 +1,7 @@
-import React, { useEffect, useRef, forwardRef } from 'react'
-
+import React, { useEffect, useRef, forwardRef } from "react";
 
 interface CanvasProps extends React.CanvasHTMLAttributes<HTMLCanvasElement> {
-  draw: (ctx: CanvasRenderingContext2D, frameCount: number) => void,
+  draw: (ctx: CanvasRenderingContext2D, frameCount: number) => void;
 }
 const useForwardRef = <T,>(
   ref: React.ForwardedRef<T>,
@@ -13,7 +12,7 @@ const useForwardRef = <T,>(
   useEffect(() => {
     if (!ref) return;
 
-    if (typeof ref === 'function') {
+    if (typeof ref === "function") {
       ref(targetRef.current);
     } else {
       ref.current = targetRef.current;
@@ -30,8 +29,11 @@ const Canvas = forwardRef<HTMLCanvasElement, CanvasProps>((props, ref) => {
       return;
     }
     const canvas = canvasRef.current;
-    
-    const context = canvas.getContext('2d');
+
+    const context = canvas.getContext("2d");
+    if (context) {
+      context.font = "16px Arial";
+    }
     let frameCount = 0;
     let animationFrameId: number;
     if (!context) {
@@ -40,18 +42,17 @@ const Canvas = forwardRef<HTMLCanvasElement, CanvasProps>((props, ref) => {
 
     const render = () => {
       frameCount++;
-      draw(context, frameCount)
-      animationFrameId = window.requestAnimationFrame(render)
-    }
-    render()
+      draw(context, frameCount);
+      animationFrameId = window.requestAnimationFrame(render);
+    };
+    render();
 
     return () => {
-      window.cancelAnimationFrame(animationFrameId)
-    }
-    
-  }, [draw])
-  
-  return <canvas ref={canvasRef} {...props}/>
+      window.cancelAnimationFrame(animationFrameId);
+    };
+  }, [draw]);
+
+  return <canvas ref={canvasRef} {...props} />;
 });
 
-export default Canvas
+export default Canvas;

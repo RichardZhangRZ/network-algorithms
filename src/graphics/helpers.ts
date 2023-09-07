@@ -41,7 +41,7 @@ export const wrapText = (
     for (let i = 0; i < words.length; i++) {
       const testLine = currLine + words[i] + " ";
       const testWidth = context.measureText(testLine).width;
-  
+
       if (testWidth > maxWidth) {
         splitLines.push(currLine);
         currLine = words[i] + " ";
@@ -52,9 +52,9 @@ export const wrapText = (
     splitLines.push(currLine);
     newLinesOfText.push(...splitLines);
   }
-  
-  let yOffset = y + padding + lineHeight;
-  
+
+  let yOffset = y + padding + parseFloat(context.font);
+
   context.fillStyle = "white";
   for (const line of newLinesOfText) {
     context.fillText(line, x + padding, yOffset);
@@ -67,5 +67,4 @@ export const wrapText = (
     padding * 2 + maxWidth,
     newLinesOfText.length * lineHeight + padding * 2
   );
-  
 };
