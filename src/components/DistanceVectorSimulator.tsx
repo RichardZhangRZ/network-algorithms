@@ -1,12 +1,12 @@
 import Canvas from "./Canvas";
 import { useEffect, createRef, useRef, useCallback, useState } from "react";
-import { DVNetwork } from "../classes/NetworkTopologies";
+import { DVNetwork } from "../entities/NetworkTopologies";
 import {
   DVIdleState,
   AddDVRouterState,
   EditDVRouterState,
   RunDVAlgorithmState,
-} from "../classes/DistanceVectorSimulatorStates";
+} from "../entities/DistanceVectorSimulatorStates";
 import {
   Menu,
   MenuButton,
@@ -29,6 +29,8 @@ import {
   NumberDecrementStepper,
 } from "@chakra-ui/react";
 import { AddIcon, HamburgerIcon } from "@chakra-ui/icons";
+import { transition } from "../graphics/graphics-helpers";
+import globalEventTarget from "../entities/GlobalEventTarget";
 
 function getMousePos(
   canvas: HTMLCanvasElement,
@@ -77,7 +79,12 @@ function WeightModal({
     return null;
   }
   return (
-    <Modal isOpen={isOpen} onClose={onClose}>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      autoFocus={false}
+      returnFocusOnClose={false}
+    >
       <ModalOverlay />
       <ModalContent>
         <ModalHeader>Enter Weight</ModalHeader>
@@ -142,8 +149,10 @@ const DistanceVectorSimulator = () => {
         event.clientX,
         event.clientY,
       ]);
-      currentState.current =
-        currentState.current.mouseMoveTransition(canvasPosition);
+      currentState.current = transition(
+        currentState.current,
+        currentState.current.mouseMoveTransition(canvasPosition)
+      );
     });
 
     canvasRef.current.addEventListener("click", (event) => {
@@ -152,18 +161,41 @@ const DistanceVectorSimulator = () => {
         event.clientX,
         event.clientY,
       ]);
-      currentState.current =
-        currentState.current.mouseClickTransition(canvasPosition);
+      currentState.current = transition(
+        currentState.current,
+        currentState.current.mouseClickTransition(canvasPosition)
+      );
     });
   }, []);
+
+  const changeTransitionEventCallback = useCallback(
+    (e: CustomEvent<SimulatorState>) => {
+      currentState.current = transition(currentState.current, e.detail);
+    },
+    []
+  ) as EventListener;
+
+  useEffect(() => {
+    globalEventTarget.addEventListener(
+      "transition",
+      changeTransitionEventCallback
+    );
+
+    return () => {
+      globalEventTarget.removeEventListener(
+        "transition",
+        changeTransitionEventCallback
+      );
+    };
+  }, [changeTransitionEventCallback]);
 
   const onAddRouterClick = useCallback<
     React.MouseEventHandler<HTMLButtonElement>
   >(
     (_) => {
-      currentState.current = new AddDVRouterState(
-        currentNetwork.current,
-        bijectiveBase26(nextNum)
+      currentState.current = transition(
+        currentState.current,
+        new AddDVRouterState(currentNetwork.current, bijectiveBase26(nextNum))
       );
       setNextNum(nextNum + 1);
     },
@@ -173,16 +205,22 @@ const DistanceVectorSimulator = () => {
   const onAddLinkClick = useCallback<
     React.MouseEventHandler<HTMLButtonElement>
   >((_) => {
-    currentState.current = new EditDVRouterState(
-      currentNetwork.current,
-      onWeightModalOpen.bind(this)
+    currentState.current = transition(
+      currentState.current,
+      new EditDVRouterState(
+        currentNetwork.current,
+        onWeightModalOpen.bind(this)
+      )
     );
   }, []);
 
   const onRunDVSimulator = useCallback<
     React.MouseEventHandler<HTMLButtonElement>
   >((_) => {
-    currentState.current = new RunDVAlgorithmState(currentNetwork.current);
+    currentState.current = transition(
+      currentState.current,
+      new RunDVAlgorithmState(currentNetwork.current)
+    );
   }, []);
 
   return (
@@ -214,7 +252,10 @@ const DistanceVectorSimulator = () => {
             return;
           }
           currentState.current.addLinkToCurrentTopology();
-          currentState.current = new DVIdleState(currentNetwork.current);
+          currentState.current = transition(
+            currentState.current,
+            new DVIdleState(currentNetwork.current)
+          );
           onWeightModalClose();
         }}
       />

@@ -24,6 +24,8 @@ class DVRouter extends NetworkEntity {
     this.distanceVector = new Map();
     this.neighboringDistanceVectors = new Map();
     this.localLinkState = new Map();
+    this.localLinkState.set(this, 0);
+    this.distanceVector.set(this, 0);
   }
 
   updateDistanceVector(incomingPacket: DVPacket): ChangeStatus {
@@ -31,7 +33,12 @@ class DVRouter extends NetworkEntity {
     const incomingDistanceVector = incomingPacket.distanceVectorInfo;
     let status = ChangeStatus.NO_CHANGE;
     this.neighboringDistanceVectors.set(neighbor, incomingDistanceVector);
-    for (const destination of this.distanceVector.keys()) {
+    const allRouters = new Set(
+      Array.from(this.distanceVector.keys()).concat(
+        Array.from(incomingDistanceVector.keys())
+      )
+    );
+    for (const destination of allRouters) {
       let minDist = this.localLinkState.get(destination) ?? Infinity;
       for (const [neighbor, dv] of this.neighboringDistanceVectors.entries()) {
         const possibleDist =
@@ -44,6 +51,7 @@ class DVRouter extends NetworkEntity {
         this.distanceVector.set(destination, minDist);
       }
     }
+
     return status;
   }
 

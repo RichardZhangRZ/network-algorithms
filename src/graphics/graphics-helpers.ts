@@ -1,5 +1,6 @@
 import { subtract, add, number, norm } from "mathjs";
-import { DVLink } from "../classes/NetworkEntities";
+import { DVLink, DVRouter } from "../entities/NetworkEntities";
+import { DVNetwork } from "../entities/NetworkTopologies";
 
 export const drawLink = (ctx: CanvasRenderingContext2D, link: DVLink) => {
   const vector = subtract(link.routerB.position, link.routerA.position);
@@ -66,5 +67,63 @@ export const wrapText = (
     y,
     padding * 2 + maxWidth,
     newLinesOfText.length * lineHeight + padding * 2
+  );
+};
+
+export const transition = (
+  oldState: SimulatorState,
+  newState: SimulatorState
+) => {
+  if (oldState != newState) {
+    oldState.cleanup();
+    return newState;
+  }
+  return newState;
+};
+
+export const drawDVInformation = (
+  ctx: CanvasRenderingContext2D,
+  targetRouter: DVRouter,
+  topologyContext: DVNetwork
+) => {
+  const discoveredHeader = `${targetRouter.name}'s Distance Vector`;
+  const discoveredBodyLines = Array.from(targetRouter.distanceVector.entries())
+    .sort(([routerA], [routerB]) => routerA.name.localeCompare(routerB.name))
+    .map(([router, distance]) => `${router.name}: ${distance}`);
+
+  if (discoveredBodyLines.length == 0) {
+    discoveredBodyLines.push("Empty");
+  }
+
+  const undiscoveredHeader = `Undiscovered Routers`;
+
+  let undiscoveredBodyLines = Array.from(topologyContext.routers)
+    .filter(
+      (router) =>
+        !Array.from(targetRouter.distanceVector.keys() ?? []).includes(router)
+    )
+    .sort((routerA, routerB) => routerA.name.localeCompare(routerB.name))
+    .map((router) => `${router.name}: Infinity`);
+
+  if (undiscoveredBodyLines.length == 0) {
+    undiscoveredBodyLines.push("None");
+  }
+
+  const distanceVectorInfoStringLines = [
+    discoveredHeader,
+    ...discoveredBodyLines,
+    "\n",
+    undiscoveredHeader,
+    ...undiscoveredBodyLines,
+  ];
+
+  wrapText(
+    ctx,
+    distanceVectorInfoStringLines,
+    targetRouter.position[0],
+    targetRouter.position[1],
+    200,
+    24,
+    5
   );
 };

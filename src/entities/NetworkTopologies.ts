@@ -1,4 +1,4 @@
-import { squared_dist } from "./Helpers";
+import { squared_dist } from "../graphics/math-helpers";
 import { DVLink, DVPacket, DVRouter } from "./NetworkEntities";
 
 class Network {}
@@ -6,14 +6,14 @@ class Network {}
 class DVNetwork extends Network {
   routers: Array<DVRouter>;
   packets: Set<DVPacket>;
-  commonTransmissionSpeed = 0.05;
-  routerRadius: number;
+  commonTransmissionSpeed = 0.5;
+  routerWidth: number;
 
-  constructor(routerRadius: number = 70) {
+  constructor(routerWidth: number = 70) {
     super();
     this.routers = [];
     this.packets = new Set();
-    this.routerRadius = routerRadius;
+    this.routerWidth = routerWidth;
   }
 
   addRouter(position: [number, number], name: string) {

@@ -1,46 +1,78 @@
 import { DVNetwork } from "./NetworkTopologies";
 import routerImg from "../assets/router.png";
+import whiteCoveringImg from "../assets/router-white-mask.png";
 import { ChangeStatus, DVPacket, DVRouter } from "./NetworkEntities";
-import { squared_dist } from "./Helpers";
+import { squared_dist } from "../graphics/math-helpers";
+import {
+  drawDVInformation,
+  drawLink,
+  wrapText,
+} from "../graphics/graphics-helpers";
+import globalEventTarget from "./GlobalEventTarget";
 
 class DVIdleState implements SimulatorState {
   currentTopology: DVNetwork;
+  currentHoveredRouter: DVRouter | null;
 
   constructor(currentTopology: DVNetwork) {
     this.currentTopology = currentTopology;
+    this.currentHoveredRouter = null;
+  }
+  cleanup(): void {
+    return;
   }
   mouseClickTransition(_?: [number, number] | undefined): SimulatorState {
     return this;
   }
 
-  mouseMoveTransition(_?: [number, number] | undefined): SimulatorState {
+  mouseMoveTransition(
+    movePosition?: [number, number] | undefined
+  ): SimulatorState {
+    if (movePosition) {
+      const closestRouter =
+        this.currentTopology.findClosestRouterToPosition(movePosition);
+      if (!closestRouter) {
+        return this;
+      }
+      if (
+        squared_dist(closestRouter.position, movePosition) <
+        (this.currentTopology.routerWidth / 2) *
+          (this.currentTopology.routerWidth / 2)
+      ) {
+        this.currentHoveredRouter = closestRouter;
+      } else {
+        this.currentHoveredRouter = null;
+      }
+    }
     return this;
   }
 
   draw(ctx: CanvasRenderingContext2D) {
+    // Display distance vector overlay
+    if (this.currentHoveredRouter) {
+      drawDVInformation(ctx, this.currentHoveredRouter, this.currentTopology);
+    }
+
     for (const router of this.currentTopology.routers) {
       const image = new Image();
       image.src = routerImg;
       ctx.fillText(
         router.name,
         router.position[0],
-        router.position[1] - this.currentTopology.routerRadius / 2 - 5
+        router.position[1] - this.currentTopology.routerWidth / 2 - 5
       );
       ctx.drawImage(
         image,
-        router.position[0] - this.currentTopology.routerRadius / 2,
-        router.position[1] - this.currentTopology.routerRadius / 2,
-        this.currentTopology.routerRadius,
-        this.currentTopology.routerRadius
+        router.position[0] - this.currentTopology.routerWidth / 2,
+        router.position[1] - this.currentTopology.routerWidth / 2,
+        this.currentTopology.routerWidth,
+        this.currentTopology.routerWidth
       );
     }
 
     const links = this.currentTopology.getLinks();
     for (const link of links) {
-      ctx.beginPath();
-      ctx.moveTo(link.routerA.position[0], link.routerA.position[1]);
-      ctx.lineTo(link.routerB.position[0], link.routerB.position[1]);
-      ctx.stroke();
+      drawLink(ctx, link);
     }
   }
 }
@@ -53,6 +85,9 @@ class AddDVRouterState implements SimulatorState {
     this.currentTopology = currentTopology;
     this.nextRouterName = nextRouterName;
     this.currentHoveringRouterPosition = [0, 0];
+  }
+  cleanup(): void {
+    return;
   }
 
   mouseClickTransition(
@@ -82,14 +117,14 @@ class AddDVRouterState implements SimulatorState {
       ctx.fillText(
         router.name,
         router.position[0],
-        router.position[1] - this.currentTopology.routerRadius / 2 - 5
+        router.position[1] - this.currentTopology.routerWidth / 2 - 5
       );
       ctx.drawImage(
         image,
-        router.position[0] - this.currentTopology.routerRadius / 2,
-        router.position[1] - this.currentTopology.routerRadius / 2,
-        this.currentTopology.routerRadius,
-        this.currentTopology.routerRadius
+        router.position[0] - this.currentTopology.routerWidth / 2,
+        router.position[1] - this.currentTopology.routerWidth / 2,
+        this.currentTopology.routerWidth,
+        this.currentTopology.routerWidth
       );
     }
     const image = new Image();
@@ -98,25 +133,22 @@ class AddDVRouterState implements SimulatorState {
       this.nextRouterName,
       this.currentHoveringRouterPosition[0],
       this.currentHoveringRouterPosition[1] -
-        this.currentTopology.routerRadius / 2 -
+        this.currentTopology.routerWidth / 2 -
         5
     );
     ctx.drawImage(
       image,
       this.currentHoveringRouterPosition[0] -
-        this.currentTopology.routerRadius / 2,
+        this.currentTopology.routerWidth / 2,
       this.currentHoveringRouterPosition[1] -
-        this.currentTopology.routerRadius / 2,
-      this.currentTopology.routerRadius,
-      this.currentTopology.routerRadius
+        this.currentTopology.routerWidth / 2,
+      this.currentTopology.routerWidth,
+      this.currentTopology.routerWidth
     );
 
     const links = this.currentTopology.getLinks();
     for (const link of links) {
-      ctx.beginPath();
-      ctx.moveTo(link.routerA.position[0], link.routerA.position[1]);
-      ctx.lineTo(link.routerB.position[0], link.routerB.position[1]);
-      ctx.stroke();
+      drawLink(ctx, link);
     }
   }
 }
@@ -136,6 +168,9 @@ class EditDVRouterState implements SimulatorState {
     this.highlightedRouter = null;
     this.currentWeight = 0;
     this.openWeightModalCallback = openWeighModalCallback;
+  }
+  cleanup(): void {
+    return;
   }
   mouseClickTransition(
     clickPosition?: [number, number] | undefined
@@ -173,7 +208,8 @@ class EditDVRouterState implements SimulatorState {
     }
     if (
       squared_dist(closestRouter.position, movePosition) <
-      this.currentTopology.routerRadius * this.currentTopology.routerRadius
+      (this.currentTopology.routerWidth / 2) *
+        (this.currentTopology.routerWidth / 2)
     ) {
       this.highlightedRouter = closestRouter;
     } else {
@@ -200,24 +236,34 @@ class EditDVRouterState implements SimulatorState {
       ctx.fillText(
         router.name,
         router.position[0],
-        router.position[1] - this.currentTopology.routerRadius / 2 - 5
+        router.position[1] - this.currentTopology.routerWidth / 2 - 5
       );
+
       ctx.drawImage(
         image,
-        router.position[0] - this.currentTopology.routerRadius / 2,
-        router.position[1] - this.currentTopology.routerRadius / 2,
-        this.currentTopology.routerRadius,
-        this.currentTopology.routerRadius
+        router.position[0] - this.currentTopology.routerWidth / 2,
+        router.position[1] - this.currentTopology.routerWidth / 2,
+        this.currentTopology.routerWidth,
+        this.currentTopology.routerWidth
       );
       ctx.restore();
     }
 
+    for (const router of this.currentTopology.routers) {
+      const white_covering = new Image();
+      white_covering.src = whiteCoveringImg;
+      ctx.drawImage(
+        white_covering,
+        router.position[0] - this.currentTopology.routerWidth / 2,
+        router.position[1] - this.currentTopology.routerWidth / 2,
+        this.currentTopology.routerWidth,
+        this.currentTopology.routerWidth
+      );
+    }
+
     const links = this.currentTopology.getLinks();
     for (const link of links) {
-      ctx.beginPath();
-      ctx.moveTo(link.routerA.position[0], link.routerA.position[1]);
-      ctx.lineTo(link.routerB.position[0], link.routerB.position[1]);
-      ctx.stroke();
+      drawLink(ctx, link);
     }
   }
 
@@ -237,23 +283,24 @@ class RunDVAlgorithmState implements SimulatorState {
   currentTopology: DVNetwork;
   roundNum;
   tickTime;
+  currentIntervalID;
 
   constructor(currentTopology: DVNetwork) {
     this.currentTopology = currentTopology;
     this.roundNum = 0;
-    this.tickTime = 0.5;
-    setInterval(this.tick.bind(this), this.tickTime);
+    this.tickTime = 10;
+    this.currentIntervalID = setInterval(this.tick.bind(this), this.tickTime);
   }
 
-  mouseMoveTransition(
-    movePosition?: [number, number] | undefined
-  ): SimulatorState {
+  cleanup(): void {
+    clearInterval(this.currentIntervalID);
+  }
+
+  mouseMoveTransition(_?: [number, number] | undefined): SimulatorState {
     return this;
   }
 
-  mouseClickTransition(
-    clickPosition?: [number, number] | undefined
-  ): SimulatorState {
+  mouseClickTransition(_?: [number, number] | undefined): SimulatorState {
     return this;
   }
 
@@ -264,14 +311,14 @@ class RunDVAlgorithmState implements SimulatorState {
       ctx.fillText(
         router.name,
         router.position[0],
-        router.position[1] - this.currentTopology.routerRadius / 2 - 5
+        router.position[1] - this.currentTopology.routerWidth / 2 - 5
       );
       ctx.drawImage(
         image,
-        router.position[0] - this.currentTopology.routerRadius / 2,
-        router.position[1] - this.currentTopology.routerRadius / 2,
-        this.currentTopology.routerRadius,
-        this.currentTopology.routerRadius
+        router.position[0] - this.currentTopology.routerWidth / 2,
+        router.position[1] - this.currentTopology.routerWidth / 2,
+        this.currentTopology.routerWidth,
+        this.currentTopology.routerWidth
       );
     }
     const image = new Image();
@@ -295,7 +342,7 @@ class RunDVAlgorithmState implements SimulatorState {
         (packet.destination.position[1] - packet.source.position[1]) *
           packet.transmission_progress;
       ctx.beginPath();
-      ctx.rect(posX, posY, 20, 50);
+      ctx.rect(posX, posY, 20, 30);
       ctx.stroke();
     }
   }
@@ -310,26 +357,37 @@ class RunDVAlgorithmState implements SimulatorState {
       }
     }
 
-    const statusMap = new Map<DVRouter, ChangeStatus>();
+    const changedRouters: Set<DVRouter> = new Set();
     const nextRound = this.roundNum + 1;
     for (const packet of this.currentTopology.packets) {
       packet.transmission_progress +=
-        this.currentTopology.commonTransmissionSpeed;
+        this.currentTopology.commonTransmissionSpeed * (this.tickTime / 1000);
       if (packet.transmission_progress >= 1.0) {
         const result = packet.destination.updateDistanceVector(packet);
         if (result == ChangeStatus.DV_CHANGED)
-          statusMap.set(packet.destination, result);
+          changedRouters.add(packet.destination);
         this.currentTopology.packets.delete(packet);
+        packet.transmission_progress = 0;
         this.roundNum = nextRound;
       }
     }
-    for (const [router, status] of statusMap.entries()) {
-      if (status == ChangeStatus.DV_CHANGED) {
-        for (const dest of router.localLinkState.keys()) {
-          const newPacket = new DVPacket(router, dest, router.localLinkState);
+
+    for (const router of changedRouters) {
+      for (const dest of router.localLinkState.keys()) {
+        if (router != dest) {
+          const newPacket = new DVPacket(router, dest, router.distanceVector);
           this.currentTopology.packets.add(newPacket);
         }
       }
+    }
+
+    if (this.currentTopology.packets.size == 0) {
+      const transitionToIdleStateEvent = new CustomEvent<SimulatorState>(
+        "transition",
+        { detail: new DVIdleState(this.currentTopology) }
+      );
+
+      globalEventTarget.dispatchEvent(transitionToIdleStateEvent);
     }
   }
 }
